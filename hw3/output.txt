@@ -1,0 +1,42 @@
+Num of entries : 32561
+Len of entries : 363
+Len of answers : 2
+
+2017-09-30 12:46:13.940864: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2017-09-30 12:46:13.940885: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-09-30 12:46:13.940889: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2017-09-30 12:46:13.940892: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-09-30 12:46:13.940897: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2017-09-30 12:46:14.020725: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-09-30 12:46:14.020983: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+name: GeForce GTX 970
+major: 5 minor: 2 memoryClockRate (GHz) 1.3165
+pciBusID 0000:01:00.0
+Total memory: 3.94GiB
+Free memory: 2.35GiB
+2017-09-30 12:46:14.020996: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2017-09-30 12:46:14.020999: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2017-09-30 12:46:14.021019: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+0 0.387797
+100 0.763309
+200 0.822686
+300 0.838861
+400 0.845004
+500 0.847256
+600 0.851351
+700 0.852375
+800 0.851761
+900 0.855037
+1000 0.853194
+1100 0.853603
+1200 0.854627
+1300 0.854422
+1400 0.854627
+1500 0.855241
+1600 0.853808
+1700 0.854422
+1800 0.854832
+1900 0.855446
+
+final accuracy 0.859713
+
