@@ -1,6 +1,12 @@
 import tensorflow as tf
 from math import log
-from random import shuffle,sample
+#from random import shuffle
+from numpy import *
+from numpy.random import choice,shuffle
+import gc
+
+class empty(): pass
+nn = empty()
 
 def make_onehot_dict(options_string):
 	#returns a dictionary of prebuilt arrays
@@ -50,10 +56,10 @@ def parse_data_file(filename):
 	sex = make_onehot_dict("Female, Male")
 	capital_gain = lambda x: [scale(int(x),0,50000)]
 	capital_gain_buckets = lambda x: make_onehot_bucket_from_range(int(x),0,50000,50)
-	capital_gain_buckets_log = lambda x: make_onehot_bucket_from_range(log(int(x)+1,10),0,9,10)
+	capital_gain_buckets_log = lambda x: make_onehot_bucket_from_range(int(math.log(int(x)+1,10)),0,9,10)
 	capital_loss = lambda x: [scale(int(x),0,50000)]
 	capital_loss_buckets = lambda x: make_onehot_bucket_from_range(int(x),0,50000,50)
-	capital_loss_buckets_log = lambda x: make_onehot_bucket_from_range(log(int(x)+1,10),0,9,10)
+	capital_loss_buckets_log = lambda x: make_onehot_bucket_from_range(int(math.log(int(x)+1,10)),0,9,10)
 	hours_per_week = lambda x: [scale(int(x),0,80)] # assuming max number is 80 hours
 	hours_per_week_buckets = lambda x: make_onehot_bucket_from_range(int(x),0,120,12)
 	native_country = make_onehot_dict("United-States, Cambodia, England, Puerto-Rico, Canada, Germany, Outlying-US(Guam-USVI-etc), India, Japan, Greece, South, China, Cuba, Iran, Honduras, Philippines, Italy, Poland, Jamaica, Vietnam, Mexico, Portugal, Ireland, France, Dominican-Republic, Laos, Ecuador, Taiwan, Haiti, Columbia, Hungary, Guatemala, Nicaragua, Scotland, Thailand, Yugoslavia, El-Salvador, Trinadad&Tobago, Peru, Hong, Holand-Netherlands")
@@ -64,95 +70,162 @@ def parse_data_file(filename):
 	answers = []
 	for line in f:
 		line = line.split(",")
-		line_data = []
+		line_data = array([],dtype=float32)
 		try:
-			line_data += age(line[0].strip())
-			line_data += age_buckets(line[0].strip())
-			line_data += workclass[line[1].strip()]
-			line_data += fnlwgt(line[2].strip())
-			line_data += fnlwgt_buckets(line[2].strip())
-			line_data += education[line[3].strip()]
-			line_data += education_num(line[4].strip())
-			line_data += education_num_buckets(line[4].strip())
-			line_data += marital_status[line[5].strip()]
-			line_data += occupation[line[6].strip()]
-			line_data += relationship[line[7].strip()]
-			line_data += race[line[8].strip()]
-			line_data += sex[line[9].strip()]
-			line_data += capital_gain(line[10].strip())
-			line_data += capital_gain_buckets(line[10].strip())
-			line_data += capital_gain_buckets_log(line[10].strip())
-			line_data += capital_loss(line[11].strip())
-			line_data += capital_loss_buckets(line[11].strip())
-			line_data += capital_loss_buckets_log(line[11].strip())
-			line_data += hours_per_week(line[12].strip())
-			line_data += hours_per_week_buckets(line[12].strip())
-			line_data += native_country[line[13].strip()]
-		except:
+			line_data = concatenate(( line_data , age(line[0].strip()) ))
+			line_data = concatenate(( line_data , age_buckets(line[0].strip()) ))
+			line_data = concatenate(( line_data , workclass[line[1].strip()] ))
+			line_data = concatenate(( line_data , fnlwgt(line[2].strip()) ))
+			line_data = concatenate(( line_data , fnlwgt_buckets(line[2].strip()) ))
+			line_data = concatenate(( line_data , education[line[3].strip()] ))
+			line_data = concatenate(( line_data , education_num(line[4].strip()) ))
+			line_data = concatenate(( line_data , education_num_buckets(line[4].strip()) ))
+			line_data = concatenate(( line_data , marital_status[line[5].strip()] ))
+			line_data = concatenate(( line_data , occupation[line[6].strip()] ))
+			line_data = concatenate(( line_data , relationship[line[7].strip()] ))
+			line_data = concatenate(( line_data , race[line[8].strip()] ))
+			line_data = concatenate(( line_data , sex[line[9].strip()] ))
+			line_data = concatenate(( line_data , capital_gain(line[10].strip()) ))
+			line_data = concatenate(( line_data , capital_gain_buckets(line[10].strip()) ))
+			line_data = concatenate(( line_data , capital_gain_buckets_log(line[10].strip()) ))
+			line_data = concatenate(( line_data , capital_loss(line[11].strip()) ))
+			line_data = concatenate(( line_data , capital_loss_buckets(line[11].strip()) ))
+			line_data = concatenate(( line_data , capital_loss_buckets_log(line[11].strip()) ))
+			line_data = concatenate(( line_data , hours_per_week(line[12].strip()) ))
+			line_data = concatenate(( line_data , hours_per_week_buckets(line[12].strip()) ))
+			line_data = concatenate(( line_data , native_country[line[13].strip()] ))
+		except e:
+			print("Skipping line",e)
 			continue
 
-		answers.append(income[line[14].strip()])
-		data.append(line_data)
+		answers.append(array(income[line[14].strip()],dtype=float32))
+		data.append(array(line_data,dtype=float32))
 		# print(len(line_data))
 		# print(line_data)
 		# break
-	return list(zip(data,answers))
 
-training_data = parse_data_file("adult.data")
-shuffle(training_data)
-print("Num of entries : {}".format(len(training_data)))
-print("Len of entries : {}".format(len(training_data[0][0])))
-print("Len of answers : {}".format(len(training_data[0][1])))
-print()
-
-test_data = parse_data_file("adult.test")
-test_data = list(zip(*test_data))
+	data = array(data)
+	answers = array(answers)
+	return data,answers
 
 #===============================================================================================================================================================================
 
-full_layer = lambda i,x,y: tf.nn.relu(
-							tf.matmul(i , tf.Variable(tf.truncated_normal([x,y],stddev=0.1)))
-							+tf.Variable(tf.constant(0.1,shape=[y]))
-						 )
+def setup_layers(deep_sizes=[100,50,10],wide_size=100):
+	full_layer = lambda i,x,y: tf.nn.relu(
+								tf.matmul(i , tf.Variable(tf.truncated_normal([x,y],stddev=0.1)))
+								+tf.Variable(tf.constant(0.1,shape=[y]))
+							 )
 
-input_size = len(training_data[0][0])
-output_size = len(training_data[0][1])
+	input_size = nn.training_data.shape[1]
+	output_size = nn.training_answers.shape[1]
 
-input_ = tf.placeholder(tf.float32,[None,input_size])
-labels =tf.placeholder(tf.float32,[None,output_size])
-dropout_rate = tf.placeholder(tf.float32)
+	nn.input_= tf.placeholder(tf.float32,[None,input_size])
+	nn.labels =tf.placeholder(tf.float32,[None,output_size])
+	nn.dropout_rate_placeholder = tf.placeholder(tf.float32)
 
-deep = full_layer( input_ , input_size,500 )
-deep = full_layer( deep, 500,250 )
-deep = full_layer( deep, 250,125 )
-deep = full_layer( deep, 125,70 )
-wide = full_layer( input_ , input_size,500 )
-total= tf.concat([deep,wide],axis=1)
-total= tf.nn.dropout(total,dropout_rate)
+	deep = full_layer( nn.input_, input_size,deep_sizes[0] )
+	for index in range(1,len(deep_sizes)):
+		deep = full_layer( deep, deep_sizes[index-1],deep_sizes[index] )
+	wide = full_layer( nn.input_, input_size,wide_size )
+	total= tf.concat([deep,wide],axis=1)
+	total= tf.nn.dropout(total,nn.dropout_rate_placeholder)
 
-output_ = tf.matmul(total , tf.Variable(tf.truncated_normal([570,output_size],stddev=0.1)))
+	nn.output_ = tf.matmul(total , tf.Variable(tf.truncated_normal([deep_sizes[-1]+wide_size,output_size],stddev=0.1)))
 
-loss = tf.losses.sigmoid_cross_entropy(labels,output_)
-optimizer = tf.train.AdamOptimizer(0.0001).minimize(loss)
-accuracy = tf.reduce_mean(tf.cast( tf.equal(tf.argmax(output_, 1), tf.argmax(labels, 1)) , tf.float32))
+	loss = tf.losses.sigmoid_cross_entropy(nn.labels,nn.output_)
+	nn.optimizer = tf.train.AdamOptimizer(0.0001).minimize(loss)
+	nn.accuracy = tf.reduce_mean(tf.cast( tf.equal(tf.argmax(nn.output_, 1), tf.argmax(nn.labels, 1)) , tf.float32))
+
 
 #===============================================================================================================================================================================
 
-validation_size = int( len(training_data) * 0.15 )
-validation_data = training_data[:validation_size]
-validation_data = list(zip(*validation_data))
-training_data   = training_data[validation_size:]
-del validation_size
-
-with tf.Session() as sess:
+def train_nn():
+	sess = tf.Session()
 	sess.run(tf.global_variables_initializer())
-	for epoch in range(2000):
-		batch = sample(training_data,150)
-		batch = list(zip(*batch))
-		sess.run(optimizer,feed_dict = {input_:batch[0],labels:batch[1],dropout_rate:0.15})
-		if epoch%100 == 0:
-			print(epoch,sess.run(accuracy,feed_dict = {input_:validation_data[0],labels:validation_data[1],dropout_rate:1}))
+	training_loss=[]
+	for epoch in range(nn.epochs+1):
+		indexes = choice(nn.training_data.shape[0],250)
+		batch_data = nn.training_data[indexes]
+		batch_answers = nn.training_answers[indexes]
+
+		sess.run(nn.optimizer,feed_dict = {nn.input_:batch_data,nn.labels:batch_answers,nn.dropout_rate_placeholder:nn.dropout_rate})
+		if epoch%50 == 0:
+		#	print(epoch,sess.run(nn.accuracy,feed_dict = {nn.input_:nn.validation_data[0],nn.labels:nn.validation_data[1],nn.dropout_rate_placeholder:1}))
+			training_loss.append(sess.run(nn.accuracy,feed_dict = {nn.input_:nn.validation_data,nn.labels:nn.validation_answers,nn.dropout_rate_placeholder:1}))
 
 
 	#and now finally the test data
-	print("\nfinal accuracy",sess.run(accuracy,feed_dict = {input_:test_data[0],labels:test_data[1],dropout_rate:1}))
+	#acc = sess.run(nn.accuracy,feed_dict = {nn.input_:nn.test_data[0],nn.labels:nn.test_data[1],nn.dropout_rate_placeholder:1})
+	#print("\nfinal accuracy",acc)
+	tf.reset_default_graph()
+	sess.close()
+	return training_loss
+
+#===============================================================================================================================================================================
+
+def run_test():
+	nn.training_data,nn.training_answers = parse_data_file("adult.data")
+	nn.training_data,nn.training_answers = ill_just_shuffle_it_myself(nn.training_data,nn.training_answers)
+
+	validation_size       = int( nn.training_data.shape[0] * 0.15 )
+	nn.validation_data    = nn.training_data[:validation_size]
+	nn.validation_answers = nn.training_answers[:validation_size]
+	nn.training_data      = nn.training_data[validation_size:]
+	nn.training_answers   = nn.training_answers[validation_size:]
+	del validation_size
+
+	#nn.test_data = parse_data_file("adult.test")
+	#nn.test_data = array(zip(*nn.test_data))
+	nn.epochs = 2000
+
+	f = open("results.csv","w")
+	f.write("Depth,Depth_Decay,Depth_Start,Dropout_Rate,Width,"+numList_string(nn.epochs,50)+"\n")
+	f.flush()
+
+	count=0
+	for depth in range(3,7):
+		for depth_decay in [x/10.0 for x in range(4,6)]: #range(0.1,0.8,.1)
+			for depth_start in range(50,400,50):
+				deep_sizes = [int(depth_start*(depth_decay**x)) for x in range(depth)]
+				for dropout_rate in [x/100.0 for x in range(15,30,5)]: #range(0.05,0.5,0.05)
+					nn.dropout_rate = dropout_rate
+					for width in range(50,400,50):
+						setup_layers(deep_sizes,width)
+						training_loss = train_nn()
+						count+=1
+						print("did round",count)
+						f.write(make_csv_line(depth,depth_decay,depth_start,dropout_rate,width,training_loss)+"\n")
+						f.flush()
+						gc.collect()
+	print("done")
+
+def numList_string(size,step):
+	s=""
+	for x in range(0,size+1,step):
+		s+="epoch"
+		s+=str(x)
+		s+=","
+	return s[:-1] #remove the last comma
+
+def make_csv_line(depth,depth_decay,depth_start,dropout_rate,width,training_loss):
+	s=""
+	s+=str(depth)+","
+	s+=str(depth_decay)+","
+	s+=str(depth_start)+","
+	s+=str(dropout_rate)+","
+	s+=str(width)+","
+	for x in training_loss:
+		s+=str(x)+","
+	return s[:-1] #remove that last comma
+
+def ill_just_shuffle_it_myself(a1,a2):
+	length = a1.shape[0]
+	ind=arange(length)
+	shuffle(ind)
+	a1 = a1[ind]
+	a2 = a2[ind]
+	return a1,a2
+
+
+if(__name__ == "__main__"):
+	run_test()
