@@ -1,0 +1,191 @@
+2017-11-01 12:00:05.367246: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.1 instructions, but these are available on your machine and could speed up CPU computations.
+2017-11-01 12:00:05.367266: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use SSE4.2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-11-01 12:00:05.367271: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX instructions, but these are available on your machine and could speed up CPU computations.
+2017-11-01 12:00:05.367274: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use AVX2 instructions, but these are available on your machine and could speed up CPU computations.
+2017-11-01 12:00:05.367292: W tensorflow/core/platform/cpu_feature_guard.cc:45] The TensorFlow library wasn't compiled to use FMA instructions, but these are available on your machine and could speed up CPU computations.
+2017-11-01 12:00:05.447882: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:893] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2017-11-01 12:00:05.448148: I tensorflow/core/common_runtime/gpu/gpu_device.cc:955] Found device 0 with properties: 
+name: GeForce GTX 970
+major: 5 minor: 2 memoryClockRate (GHz) 1.3165
+pciBusID 0000:01:00.0
+Total memory: 3.94GiB
+Free memory: 2.83GiB
+2017-11-01 12:00:05.448160: I tensorflow/core/common_runtime/gpu/gpu_device.cc:976] DMA: 0 
+2017-11-01 12:00:05.448164: I tensorflow/core/common_runtime/gpu/gpu_device.cc:986] 0:   Y 
+2017-11-01 12:00:05.448185: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+2017-11-01 12:00:15.908404: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1045] Creating TensorFlow device (/gpu:0) -> (device: 0, name: GeForce GTX 970, pci bus id: 0000:01:00.0)
+WARNING:tensorflow:Standard services need a 'logdir' passed to the SessionManager
+Epoch: 1 Learning rate: 1.000
+0.004 perplexity: 4709.847 speed: 15860 wps
+0.104 perplexity: 863.934 speed: 40117 wps
+0.204 perplexity: 645.802 speed: 41418 wps
+0.304 perplexity: 521.451 speed: 41585 wps
+0.404 perplexity: 448.887 speed: 42111 wps
+0.504 perplexity: 401.914 speed: 42035 wps
+0.604 perplexity: 361.756 speed: 42042 wps
+0.703 perplexity: 334.037 speed: 41981 wps
+0.803 perplexity: 312.207 speed: 41992 wps
+0.903 perplexity: 292.231 speed: 42157 wps
+Epoch: 1 Train Perplexity: 277.195
+Epoch: 1 Valid Perplexity: 181.259
+Epoch: 2 Learning rate: 1.000
+0.004 perplexity: 217.654 speed: 46099 wps
+0.104 perplexity: 155.829 speed: 44569 wps
+0.204 perplexity: 162.869 speed: 44396 wps
+0.304 perplexity: 157.724 speed: 44237 wps
+0.404 perplexity: 154.868 speed: 43827 wps
+0.504 perplexity: 152.466 speed: 43924 wps
+0.604 perplexity: 147.783 speed: 44055 wps
+0.703 perplexity: 145.579 speed: 44078 wps
+0.803 perplexity: 143.481 speed: 43974 wps
+0.903 perplexity: 139.777 speed: 43916 wps
+Epoch: 2 Train Perplexity: 137.672
+Epoch: 2 Valid Perplexity: 145.130
+Epoch: 3 Learning rate: 1.000
+0.004 perplexity: 149.698 speed: 41631 wps
+0.104 perplexity: 108.866 speed: 42521 wps
+0.204 perplexity: 117.956 speed: 43380 wps
+0.304 perplexity: 115.247 speed: 43447 wps
+0.404 perplexity: 114.167 speed: 43497 wps
+0.504 perplexity: 113.383 speed: 43470 wps
+0.604 perplexity: 110.642 speed: 43363 wps
+0.703 perplexity: 109.969 speed: 43026 wps
+0.803 perplexity: 109.281 speed: 43028 wps
+0.903 perplexity: 107.012 speed: 43149 wps
+Epoch: 3 Train Perplexity: 106.021
+Epoch: 3 Valid Perplexity: 134.352
+Epoch: 4 Learning rate: 1.000
+0.004 perplexity: 120.338 speed: 45627 wps
+0.104 perplexity: 88.112 speed: 43804 wps
+0.204 perplexity: 96.856 speed: 44219 wps
+0.304 perplexity: 94.617 speed: 44403 wps
+0.404 perplexity: 94.173 speed: 44432 wps
+0.504 perplexity: 93.754 speed: 44179 wps
+0.604 perplexity: 91.821 speed: 43839 wps
+0.703 perplexity: 91.590 speed: 43509 wps
+0.803 perplexity: 91.351 speed: 43298 wps
+0.903 perplexity: 89.702 speed: 43224 wps
+Epoch: 4 Train Perplexity: 89.110
+Epoch: 4 Valid Perplexity: 131.112
+Epoch: 5 Learning rate: 0.500
+0.004 perplexity: 101.189 speed: 43801 wps
+0.104 perplexity: 73.658 speed: 43074 wps
+0.204 perplexity: 79.997 speed: 43823 wps
+0.304 perplexity: 77.148 speed: 43805 wps
+0.404 perplexity: 76.035 speed: 43883 wps
+0.504 perplexity: 75.013 speed: 43910 wps
+0.604 perplexity: 72.786 speed: 44068 wps
+0.703 perplexity: 72.003 speed: 44126 wps
+0.803 perplexity: 71.246 speed: 44170 wps
+0.903 perplexity: 69.362 speed: 44084 wps
+Epoch: 5 Train Perplexity: 68.378
+Epoch: 5 Valid Perplexity: 120.519
+Epoch: 6 Learning rate: 0.250
+0.004 perplexity: 82.186 speed: 50540 wps
+0.104 perplexity: 60.959 speed: 49901 wps
+0.204 perplexity: 66.381 speed: 50180 wps
+0.304 perplexity: 63.920 speed: 50529 wps
+0.404 perplexity: 62.952 speed: 50443 wps
+0.504 perplexity: 62.062 speed: 50641 wps
+0.604 perplexity: 60.143 speed: 50735 wps
+0.703 perplexity: 59.417 speed: 50841 wps
+0.803 perplexity: 58.663 speed: 50857 wps
+0.903 perplexity: 56.991 speed: 50948 wps
+Epoch: 6 Train Perplexity: 56.044
+Epoch: 6 Valid Perplexity: 118.787
+Epoch: 7 Learning rate: 0.125
+0.004 perplexity: 73.150 speed: 49944 wps
+0.104 perplexity: 54.333 speed: 50750 wps
+0.204 perplexity: 59.275 speed: 50549 wps
+0.304 perplexity: 57.035 speed: 51015 wps
+0.404 perplexity: 56.153 speed: 51184 wps
+0.504 perplexity: 55.347 speed: 51250 wps
+0.604 perplexity: 53.612 speed: 51348 wps
+0.703 perplexity: 52.919 speed: 51411 wps
+0.803 perplexity: 52.206 speed: 51449 wps
+0.903 perplexity: 50.662 speed: 51488 wps
+Epoch: 7 Train Perplexity: 49.762
+Epoch: 7 Valid Perplexity: 118.866
+Epoch: 8 Learning rate: 0.062
+0.004 perplexity: 68.643 speed: 48433 wps
+0.104 perplexity: 50.986 speed: 51783 wps
+0.204 perplexity: 55.674 speed: 51735 wps
+0.304 perplexity: 53.572 speed: 51691 wps
+0.404 perplexity: 52.734 speed: 51673 wps
+0.504 perplexity: 51.981 speed: 51438 wps
+0.604 perplexity: 50.342 speed: 51320 wps
+0.703 perplexity: 49.667 speed: 51301 wps
+0.803 perplexity: 48.975 speed: 51339 wps
+0.903 perplexity: 47.496 speed: 51386 wps
+Epoch: 8 Train Perplexity: 46.623
+Epoch: 8 Valid Perplexity: 119.145
+Epoch: 9 Learning rate: 0.031
+0.004 perplexity: 66.493 speed: 51133 wps
+0.104 perplexity: 49.297 speed: 51589 wps
+0.204 perplexity: 53.857 speed: 51725 wps
+0.304 perplexity: 51.807 speed: 51622 wps
+0.404 perplexity: 50.984 speed: 51569 wps
+0.504 perplexity: 50.269 speed: 51623 wps
+0.604 perplexity: 48.681 speed: 51589 wps
+0.703 perplexity: 48.013 speed: 51587 wps
+0.803 perplexity: 47.326 speed: 51113 wps
+0.903 perplexity: 45.878 speed: 50673 wps
+Epoch: 9 Train Perplexity: 45.016
+Epoch: 9 Valid Perplexity: 119.142
+Epoch: 10 Learning rate: 0.016
+0.004 perplexity: 65.179 speed: 47179 wps
+0.104 perplexity: 48.341 speed: 50617 wps
+0.204 perplexity: 52.849 speed: 50726 wps
+0.304 perplexity: 50.842 speed: 50959 wps
+0.404 perplexity: 50.029 speed: 51031 wps
+0.504 perplexity: 49.339 speed: 51141 wps
+0.604 perplexity: 47.784 speed: 51216 wps
+0.703 perplexity: 47.120 speed: 51233 wps
+0.803 perplexity: 46.432 speed: 51268 wps
+0.903 perplexity: 44.998 speed: 51161 wps
+Epoch: 10 Train Perplexity: 44.142
+Epoch: 10 Valid Perplexity: 118.758
+Epoch: 11 Learning rate: 0.008
+0.004 perplexity: 64.411 speed: 42876 wps
+0.104 perplexity: 47.787 speed: 51208 wps
+0.204 perplexity: 52.266 speed: 51261 wps
+0.304 perplexity: 50.287 speed: 51337 wps
+0.404 perplexity: 49.485 speed: 51413 wps
+0.504 perplexity: 48.805 speed: 51391 wps
+0.604 perplexity: 47.269 speed: 51351 wps
+0.703 perplexity: 46.611 speed: 51327 wps
+0.803 perplexity: 45.924 speed: 51334 wps
+0.903 perplexity: 44.499 speed: 51352 wps
+Epoch: 11 Train Perplexity: 43.647
+Epoch: 11 Valid Perplexity: 118.336
+Epoch: 12 Learning rate: 0.004
+0.004 perplexity: 63.945 speed: 47813 wps
+0.104 perplexity: 47.462 speed: 51156 wps
+0.204 perplexity: 51.931 speed: 50861 wps
+0.304 perplexity: 49.972 speed: 50723 wps
+0.404 perplexity: 49.177 speed: 50623 wps
+0.504 perplexity: 48.503 speed: 50824 wps
+0.604 perplexity: 46.979 speed: 50921 wps
+0.703 perplexity: 46.325 speed: 51011 wps
+0.803 perplexity: 45.639 speed: 51053 wps
+0.903 perplexity: 44.220 speed: 51087 wps
+Epoch: 12 Train Perplexity: 43.371
+Epoch: 12 Valid Perplexity: 118.037
+Epoch: 13 Learning rate: 0.002
+0.004 perplexity: 63.675 speed: 47090 wps
+0.104 perplexity: 47.279 speed: 51283 wps
+0.204 perplexity: 51.740 speed: 51422 wps
+0.304 perplexity: 49.795 speed: 51485 wps
+0.404 perplexity: 49.007 speed: 51136 wps
+0.504 perplexity: 48.339 speed: 50927 wps
+0.604 perplexity: 46.820 speed: 50858 wps
+0.703 perplexity: 46.169 speed: 50944 wps
+0.803 perplexity: 45.485 speed: 51050 wps
+0.903 perplexity: 44.070 speed: 51110 wps
+Epoch: 13 Train Perplexity: 43.223
+Epoch: 13 Valid Perplexity: 117.855
+Test Perplexity: 112.679
+
+real	5m42.964s
+user	3m58.216s
+sys	0m12.069s
