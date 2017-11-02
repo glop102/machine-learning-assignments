@@ -84,13 +84,13 @@ def appendWeightNorm(w):
 	global weight_squared
 	# weight_norm = weight_norm+tf.nn.l2_loss(w)
 	# weight_norm = weight_norm+tf.reduce_sum(tf.nn.l2_normalize(w,0))
-	weight_squared = weight_squared + tf.sqrt(tf.reduce_sum(w**2)/2)
+	weight_squared = weight_squared + tf.sqrt(tf.reduce_sum(w**2))
 
 def convolutionUnit(node,shape): #kernel size x&y, features in&out
 	w = tf.Variable(tf.truncated_normal(shape, stddev=0.1))
 	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
 	conv = tf.nn.convolution(node,w,"SAME") + b
-	appendWeightNorm(w)
+	#appendWeightNorm(w)
 	return conv
 def convolutionUnit_2x2step(node,shape): #kernel size x&y, features in&out
 	w = tf.Variable(tf.truncated_normal(shape, stddev=0.1))
@@ -99,31 +99,31 @@ def convolutionUnit_2x2step(node,shape): #kernel size x&y, features in&out
 	appendWeightNorm(w)
 	return conv
 
-# def residualSection(node,features1,features2):
-# 	n1 = convolutionUnit(tf.nn.relu(node),[1,1,features2,features1]) #1x1 convoluion
-# 	# n1 = tf.nn.dropout(n1,dropout_keeprate)
-
-# 	n2a = convolutionUnit(tf.nn.relu(n1),[1,3,features1,features1]) #vertical convolution
-# 	n2b = convolutionUnit(tf.nn.relu(n1),[3,1,features1,features1]) #horizontal convolution
-# 	n2 = tf.concat((n2a,n2b),axis=3)
-# 	#n2 = tf.nn.dropout(n2,dropout_keeprate)
-
-# 	n3 = convolutionUnit(tf.nn.relu(n2),[1,1,features1*2,features2]) #1x1 convoluion
-# 	#n3 = tf.nn.dropout(n3,dropout_keeprate)
-# 	return tf.nn.l2_normalize(n3 + node , 0)
-# 	# return n3 + node
 def residualSection(node,features1,features2):
-	n1 = convolutionUnit(tf.nn.relu(node),[1,1,features2,features1]) #1x1 convoluion
-	# n1 = tf.nn.dropout(n1,dropout_keeprate)
+ 	n1 = convolutionUnit(tf.nn.relu(node),[1,1,features2,features1]) #1x1 convoluion
+ 	n1 = tf.nn.dropout(n1,dropout_keeprate)
 
-	n2 = convolutionUnit(tf.nn.relu(n1),[3,3,features1,features1]) #vertical convolution
+ 	n2a = convolutionUnit(tf.nn.relu(n1),[1,3,features1,features1]) #vertical convolution
+ 	n2b = convolutionUnit(tf.nn.relu(n1),[3,1,features1,features1]) #horizontal convolution
+ 	n2 = tf.concat((n2a,n2b),axis=3)
+ 	#n2 = tf.nn.dropout(n2,dropout_keeprate)
 
-	n3 = convolutionUnit(tf.nn.relu(n2),[1,1,features1,features2]) #1x1 convoluion
-	# n3 = tf.nn.dropout(n3,dropout_keeprate)
-	#n3 = tf.nn.l2_normalize(n3,0)
+ 	n3 = convolutionUnit(tf.nn.relu(n2),[1,1,2*features1,features2]) #1x1 convoluion
+ 	#n3 = tf.nn.dropout(n3,dropout_keeprate)
+ 	#return tf.nn.l2_normalize(n3 + node , 0)
+ 	return n3 + node
+#def residualSection(node,features1,features2):
+	#n1 = convolutionUnit(tf.nn.relu(node),[1,1,features2,features1]) #1x1 convoluion
+	# # n1 = tf.nn.dropout(n1,dropout_keeprate)
 
-	return n3 + node
-	# return n3
+	#n2 = convolutionUnit(tf.nn.relu(n1),[3,3,features1,features1]) #vertical convolution
+
+	#n3 = convolutionUnit(tf.nn.relu(n2),[1,1,features1,features2]) #1x1 convoluion
+	# # n3 = tf.nn.dropout(n3,dropout_keeprate)
+	# # n3 = tf.nn.l2_normalize(n3,0)
+
+	#return n3 + node
+	# # return n3
 # def residualSection(node,features1,features2):
 # 	n1 = convolutionUnit(tf.nn.relu(node),[3,3,features2,features1]) #1x1 convoluion
 # 	n2 = convolutionUnit(tf.nn.relu(n1),[3,3,features1,features1]) #vertical convolution
@@ -141,12 +141,14 @@ def denseUnit(node,shape):
 
 l1 = tf.nn.relu(convolutionUnit(input_node,[3,3,3,20]))
 l1 = tf.nn.relu(convolutionUnit(l1,[3,3,20,32]))
-for _ in range(8):
+for _ in range(4):
 	l1 = residualSection(l1,32,32)
-l2 = tf.nn.max_pool( convolutionUnit(l1,[3,3,32,64]) , [1,2,2,1],[1,2,2,1],"SAME") #16x16
-for _ in range(8):
+#l2 = tf.nn.max_pool( convolutionUnit(l1,[3,3,32,64]) , [1,2,2,1],[1,2,2,1],"SAME") #16x16
+l2 = tf.nn.avg_pool( convolutionUnit(l1,[3,3,32,64]) , [1,2,2,1],[1,2,2,1],"SAME") #16x16
+for _ in range(4):
 	l2 = residualSection(l2,55,64)
-l3 = tf.nn.max_pool( convolutionUnit(l2,[3,3,64,128]) , [1,2,2,1],[1,2,2,1],"SAME") #8x8
+#l3 = tf.nn.max_pool( convolutionUnit(l2,[3,3,64,128]) , [1,2,2,1],[1,2,2,1],"SAME") #8x8
+l3 = tf.nn.avg_pool( convolutionUnit(l2,[3,3,64,128]) , [1,2,2,1],[1,2,2,1],"SAME") #8x8
 # for _ in range(4):
 # 	l3 = residualSection(l3,110,128)
 # l4 = convolutionUnit(l3,[3,3,128,256])
@@ -198,8 +200,7 @@ correct_prediction = tf.cast(correct_prediction, tf.float32)
 accuracy = tf.reduce_mean(correct_prediction)
 
 # optimizer = tf.train.AdamOptimizer().minimize(cross_entropy)
-# optimizer = tf.train.AdamOptimizer().minimize(cross_entropy + 0.01*tf.add_n([tf.nn.l2_loss(v)for v in tf.trainable_variables() if 'bias' not in v.name]) )
-optimizer = tf.train.AdamOptimizer().minimize(cross_entropy + 0.01*weight_squared )
+optimizer = tf.train.AdamOptimizer().minimize(cross_entropy + 0.001*weight_squared )
 
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
