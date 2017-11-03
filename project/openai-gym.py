@@ -11,18 +11,31 @@ env.reset()
 memory_size = 1000
 memory = []
 
-y = 0.99 #discount rate for future gains - higher makes it favor future more
-e = 0.1 #chance of forcing a random action
+y = 0.95 #discount rate for future gains - higher makes it favor future more
+e = 1.0 #chance of forcing a random action
+
+def denseUnit_custom(node,shape):
+	w = tf.Variable(tf.random_normal(shape, stddev=0.1,dtype=tf.float32))
+	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
+	x = tf.matmul(node,w)+b
+	appendWeightNorm(w)
+	return x
 
 #=====================================================================
 #make the network
-input_state = tf.placeholder(tf.float32,shape=[None,4])
+input_state = tf.placeholder(tf.float32,shape=[1,4])
+# normalised_input = tf.nn.l2_normalize(input_state,dim=0)
+# l1 = denseUnit(input_state,[4,10])
 l1 = denseUnit(input_state,[4,10])
-output_values = denseUnit(l1,[10,2])
+# output_values = denseUnit(l1,[10,2])
+# output_values = tf.nn.tanh(denseUnit_noActivation(l1,[10,2]))
+output_values = tf.nn.sigmoid(denseUnit_noActivation(l1,[10,2]))
 output_action = tf.argmax(output_values) #the index of the highest value
 
-wanted_output = tf.placeholder(tf.float32,shape=[None,2])
+wanted_output = tf.placeholder(tf.float32,shape=[1,2])
 loss = tf.reduce_sum(tf.square(wanted_output - output_values))
+# loss = tf.reduce_sum(tf.square(wanted_output - output_values) + (0.001 * weight_squared))
+# loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=wanted_output,logits=output_values)
 
 #=====================================================================
 #do the learning
@@ -30,9 +43,12 @@ sess = tf.Session()
 curt_state = env.reset()
 step_counter = 0
 reward_total = 0
+actions_taken=[]
+prevAction = 0
+numPrevAction = 0
 
 # trainer = tf.train.AdamOptimizer()
-trainer = tf.train.GradientDescentOptimizer(0.1)
+trainer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
 optimize = trainer.minimize(loss)
 sess.run(tf.global_variables_initializer())
 while True:
@@ -42,6 +58,10 @@ while True:
 	action,outputs = sess.run([output_action,output_values],feed_dict={input_state:[curt_state]})
 	if np.random.rand(1) < e:
 		action[0] = env.action_space.sample()
+	actions_taken.append(action[0])
+	if action[0] != prevAction:
+		prevAction = action[0]
+		numPrevAction = 0
 
 	#see what the action does
 	next_state, reward, done, info = env.step(action[0])
@@ -50,12 +70,13 @@ while True:
 	outputs_next = sess.run(output_values,feed_dict={input_state:[next_state]})
 
 	# how much do we want to reinforce the action taken?
-	delta = reward + y*np.max(outputs_next)
+	# delta = reward + ( y*np.max(outputs_next)) - ( y*np.min(outputs_next)) - (numPrevAction)
+	delta = reward_total + ( y*np.max(outputs_next)) - ( y*np.min(outputs_next)) - (numPrevAction**2)
 	# delta = reward_total + y*np.max(outputs_next)
 	# delta = y*np.max(outputs_next)
 	# delta = outputs[0,action[0]]
-	if done:
-		delta = reward_total
+	# if done:
+	# 	delta = reward_total
 	# put the amount to reinforce as the only delta of the output to have it train
 	target_outputs = outputs
 	target_outputs[0,action] = delta
@@ -67,9 +88,14 @@ while True:
 		# Reduce chance of random action as we train the model.
 		e = 1./((step_counter/50) + 10)
 		# e -= 0.001
+		# e *= 0.999
 
 		#pretty little progres bar of how long it runs before being "done"
-		print((" "*int(step_counter/4)) + "#")
+		# print((" "*int(step_counter)) + "#")
+		line = ""
+		for x in actions_taken : line += str(x)
+		print(line,np.min(outputs))
+		actions_taken=[]
 		step_counter = 0
 
 	sess.run(optimize,feed_dict={input_state:[curt_state],wanted_output:target_outputs})
@@ -84,68 +110,6 @@ while True:
 #little NN stuff above for DeepQ
 #clean room - mostly bags and bottles
 #clean room - move food around
-#school for loan stuff
 #NN stuff again
 #laundry
-
-
-
-
-
-
-# import gym
-# import numpy as np
-# import random
-# import tensorflow as tf
-# import matplotlib.pyplot as plt
-
-
-# env = gym.make('FrozenLake-v0')
-
-#These lines establish the feed-forward part of the network used to choose actions
-# inputs1 = tf.placeholder(shape=[1,16],dtype=tf.float32)
-# W = tf.Variable(tf.random_uniform([16,4],0,0.01))
-# Qout = tf.matmul(inputs1,W)
-# predict = tf.argmax(Qout,1)
-
-#Below we obtain the loss by taking the sum of squares difference between the target and prediction Q values.
-# nextQ = tf.placeholder(shape=[1,4],dtype=tf.float32)
-# loss = tf.reduce_sum(tf.square(nextQ - Qout))
-# trainer = tf.train.GradientDescentOptimizer(learning_rate=0.1)
-# updateModel = trainer.minimize(loss)
-
-# Set learning parameters
-# y = .99
-# e = 0.1
-# num_episodes = 2000
-# sess = tf.Session()
-# sess.run(tf.global_variables_initializer())
-# for i in range(num_episodes):
-    #Reset environment and get first new observation
-    # s = env.reset()
-    # done = False
-    # step = 0
-    #The Q-Network
-    # while step < 99:
-    #     step+=1
-        #Choose an action by greedily (with e chance of random action) from the Q-network
-        # a,allQ = sess.run([predict,Qout],feed_dict={inputs1:np.identity(16)[s:s+1]})
-        # if np.random.rand(1) < e:
-        #     a[0] = env.action_space.sample()
-        #Get new state and reward from environment
-        # s1,r,done,_ = env.step(a[0])
-        # env.render()
-        #Obtain the Q' values by feeding the new state through our network
-        # Q1 = sess.run(Qout,feed_dict={inputs1:np.identity(16)[s1:s1+1]})
-        #Obtain maxQ' and set our target value for chosen action.
-        # maxQ1 = np.max(Q1)
-        # targetQ = allQ
-        # targetQ[0,a[0]] = r + y*maxQ1
-        #Train our network using target and predicted Q values
-        # sess.run(updateModel,feed_dict={inputs1:np.identity(16)[s:s+1],nextQ:targetQ})
-        # s = s1
-        # if done == True:
-        #     #Reduce chance of random action as we train the model.
-        #     e = 1./((i/50) + 10)
-        #     break
-
+#take check to bank
