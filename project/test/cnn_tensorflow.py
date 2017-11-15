@@ -57,10 +57,12 @@ class CNN:
       b3 = tf.get_variable("b3", shape=b3shape, initializer = tf.constant_initializer(0.0))
 
     xW = tf.matmul(input_obs, W1)
-    h = tf.tanh(tf.add(xW, b1))
+    # h = tf.tanh(tf.add(xW, b1))
+    h = tf.nn.relu(tf.add(xW, b1))
 
     xW = tf.matmul(h, W2)
-    h = tf.tanh(tf.add(xW, b2))
+    # h = tf.tanh(tf.add(xW, b2))
+    h = tf.nn.relu(tf.add(xW, b2))
 
     hU = tf.matmul(h, U)    
     out = tf.add(hU, b3)
@@ -78,7 +80,7 @@ class CNN:
     self.predictions = outputs
     
     self.q_vals = tf.reduce_sum(tf.multiply(self.predictions, self.actions_placeholder), 1)
-
+    # self.q_vals = tf.reduce_max(self.predictions, 1) # WARNING - this line does not work at all
     self.loss = tf.reduce_sum(tf.square(self.labels_placeholder - self.q_vals)) + reg
 
     optimizer = tf.train.GradientDescentOptimizer(learning_rate = self.lr)
@@ -94,9 +96,9 @@ class CNN:
     """
     Updates the CNN model with a mini batch of training examples.
     """
-
-    loss, _, prediction_probs, q_values = self.session.run(
-      [self.loss, self.train_op, self.predictions, self.q_vals],
+    # print("labels  : ",ys)
+    # print("actions : ",actions)
+    self.session.run([self.train_op],
       feed_dict = {self.input_placeholder: Xs,
                   self.labels_placeholder: ys,
                   self.actions_placeholder: actions
@@ -109,11 +111,14 @@ class CNN:
       observation: a numpy array of a single observation state
     """
 
-    loss, prediction_probs = self.session.run(
-      [self.loss, self.predictions],
-      feed_dict = {self.input_placeholder: observation,
-                  self.labels_placeholder: np.zeros(len(observation)),
-                  self.actions_placeholder: np.zeros((len(observation), self.num_actions))
-                  })
+    # loss, prediction_probs = self.session.run(
+    #   [self.loss, self.predictions],
+    #   feed_dict = {self.input_placeholder: observation,
+    #               self.labels_placeholder: np.zeros(len(observation)),
+    #               self.actions_placeholder: np.zeros((len(observation), self.num_actions))
+    #               })
+    prediction_probs = self.session.run(
+      [self.predictions],
+      feed_dict = { self.input_placeholder: observation })
 
     return prediction_probs

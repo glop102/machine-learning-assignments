@@ -14,6 +14,7 @@ memory = deque(maxlen=memory_size)
 
 y = 0.95 #discount rate for future gains - higher makes it favor future more
 e = 1.0 #chance of forcing a random action
+batch_size = 15
 
 def denseUnit_custom(node,shape):
 	w = tf.Variable(tf.random_normal(shape, stddev=0.1,dtype=tf.float32))
@@ -27,16 +28,17 @@ def denseUnit_custom(node,shape):
 input_state = tf.placeholder(tf.float32,shape=[None,4])
 # normalised_input = tf.nn.l2_normalize(input_state,dim=0)
 # l1 = denseUnit(input_state,[4,10])
-l1 = denseUnit(input_state,[4,10])
-output_values = denseUnit(l1,[10,2])
+l1 = denseUnit(input_state,[4,20])
+l2 = denseUnit(l1,[20,40])
+l3 = denseUnit(l2,[40,20])
+output_values = denseUnit_noActivation(l3,[20,2])
 # output_values = tf.nn.tanh(denseUnit_noActivation(l1,[10,2]))
 # output_values = tf.nn.sigmoid(denseUnit_noActivation(l1,[10,2]))
 output_action = tf.argmax(output_values,axis=1) #the index of the highest value
 
 wanted_output = tf.placeholder(tf.float32,shape=[None,2])
-loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1)
-# loss = tf.reduce_sum(tf.square(wanted_output - output_values) + (0.001 * weight_squared),axis=1)
-# loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=wanted_output,logits=output_values)
+# loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1)
+loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1) + (0.001 * weight_squared)
 
 #=====================================================================
 #do the learning
@@ -52,7 +54,8 @@ optimize = trainer.minimize(loss)
 sess.run(tf.global_variables_initializer())
 
 def trainNet():
-	seq = np.random.choice(memory,size=100)
+	if(len(memory)<batch_size): return
+	seq = np.random.choice(memory,size=batch_size)
 	states=[]
 	actions=[]
 	wanted=[]
@@ -64,6 +67,7 @@ def trainNet():
 		outputs      = sess.run(output_values,feed_dict={input_state:[curt_state]})
 		outputs_next = sess.run(output_values,feed_dict={input_state:[next_state]})
 
+		# delta = reward + ( y*outputs_next[0,action])
 		delta = reward + ( y*np.max(outputs_next))
 		target_outputs = outputs.copy()
 		target_outputs[0,action] = delta
@@ -77,17 +81,19 @@ while True:
 	env.render()
 	step_counter += 1
 	#Chose an action for the current state
-	action,outputs = sess.run([output_action,output_values],feed_dict={input_state:[curt_state]})
+	action = [0]
 	if np.random.rand(1) < e:
 		action[0] = env.action_space.sample()
+	else:
+		action = sess.run([output_action],feed_dict={input_state:[curt_state]})
 	actions_taken.append(action[0])
 
 	#see what the action does
 	next_state, reward, done, info = env.step(action[0])
 
 	memory.append({
-		"curt_state":curt_state,
-		"next_state":next_state,
+		"curt_state":curt_state.copy(),
+		"next_state":next_state.copy(),
 		"reward":reward,
 		"action":action,
 		"done":done
