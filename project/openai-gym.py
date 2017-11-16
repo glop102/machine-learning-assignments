@@ -16,13 +16,6 @@ y = 0.95 #discount rate for future gains - higher makes it favor future more
 e = 1.0 #chance of forcing a random action
 batch_size = 15
 
-def denseUnit_custom(node,shape):
-	w = tf.Variable(tf.random_normal(shape, stddev=0.1,dtype=tf.float32))
-	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
-	x = tf.matmul(node,w)+b
-	appendWeightNorm(w)
-	return x
-
 #=====================================================================
 #make the network
 input_state = tf.placeholder(tf.float32,shape=[None,4])
@@ -37,8 +30,8 @@ output_values = denseUnit_noActivation(l3,[20,2])
 output_action = tf.argmax(output_values,axis=1) #the index of the highest value
 
 wanted_output = tf.placeholder(tf.float32,shape=[None,2])
-# loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1)
-loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1) + (0.001 * weight_squared)
+loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1)
+#loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1) + (0.001 * weight_squared)
 
 #=====================================================================
 #do the learning
@@ -64,11 +57,17 @@ def trainNet():
 		next_state = step["next_state"]
 		reward     = step["reward"]
 		action     = step["action"]
+		done       = step["done"]
 		outputs      = sess.run(output_values,feed_dict={input_state:[curt_state]})
 		outputs_next = sess.run(output_values,feed_dict={input_state:[next_state]})
 
-		# delta = reward + ( y*outputs_next[0,action])
-		delta = reward + ( y*np.max(outputs_next))
+		delta=0
+		if not done:
+			# delta = reward + ( y*outputs_next[0,action])
+			delta = reward + ( y*np.max(outputs_next))
+		else:
+			delta = reward
+		#delta = reward + ( y*np.max(outputs_next))
 		target_outputs = outputs.copy()
 		target_outputs[0,action] = delta
 
@@ -81,15 +80,18 @@ while True:
 	env.render()
 	step_counter += 1
 	#Chose an action for the current state
-	action = [0]
+	action = sess.run(output_action,feed_dict={input_state:[curt_state]})
 	if np.random.rand(1) < e:
 		action[0] = env.action_space.sample()
-	else:
-		action = sess.run([output_action],feed_dict={input_state:[curt_state]})
 	actions_taken.append(action[0])
 
 	#see what the action does
-	next_state, reward, done, info = env.step(action[0])
+	try:
+		next_state, reward, done, info = env.step(action[0])
+	except:
+		print(action)
+		curt_state = env.reset()
+		continue
 
 	memory.append({
 		"curt_state":curt_state.copy(),
@@ -108,7 +110,9 @@ while True:
 		# Reduce chance of random action as we train the model.
 		# e = 1./((step_counter/50) + 10)
 		# e -= 0.001
-		e *= 0.998
+		if e>0:
+			#e -= 0.001
+			e *= 0.998
 
 		#pretty little progres bar of how long it runs before being "done"
 		# print((" "*int(step_counter)) + "#")
