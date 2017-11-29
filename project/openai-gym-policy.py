@@ -12,9 +12,9 @@ env.reset()
 memory_size = 10000
 memory = deque(maxlen=memory_size)
 
-gamma = 0.95 #discount rate for future gains - higher makes it favor future more
+gamma = 0.975 #discount rate for future gains - higher makes it favor future more
 e = 1.0
-batch_size = 15
+batch_size = 25
 
 input_size = env.reset().shape[0]
 num_actions_available = env.action_space.n
@@ -27,16 +27,21 @@ input_state = tf.placeholder(tf.float32,shape=[None,input_size])
 l1 = denseUnit(input_state,[input_size,20])
 l2 = denseUnit(l1,[20,40])
 l3 = denseUnit(l2,[40,20])
-output_values = denseUnit_noActivation(l3,[20,num_actions_available])
+output_values = tf.nn.sigmoid( denseUnit_noActivation(l3,[20,num_actions_available]) )
 # output_values = tf.nn.tanh(denseUnit_noActivation(l1,[10,num_actions_available]))
 # output_values = tf.nn.sigmoid(denseUnit_noActivation(l1,[10,num_actions_available]))
 output_action = tf.argmax(output_values,axis=1) #the index of the highest value
 
 action_taken = tf.placeholder(tf.int32,shape=[None])
 reward_given = tf.placeholder(tf.float32,shape=[None])
-indexes = tf.range(0, tf.shape(output_values)[0]) * tf.shape(output_values)[1] + action_taken
-responsible_outputs = tf.gather(tf.reshape(output_values, [-1]), indexes)
-loss = -tf.reduce_mean(tf.log(responsible_outputs)*reward_given)
+deltas = tf.one_hot(action_taken,num_actions_available) - output_values
+loss = tf.reduce_sum(deltas)*reward_given
+
+# action_taken = tf.placeholder(tf.int32,shape=[None])
+# reward_given = tf.placeholder(tf.float32,shape=[None])
+# indexes = tf.range(0, tf.shape(output_values)[0]) * tf.shape(output_values)[1] + action_taken
+# responsible_outputs = tf.gather(tf.reshape(output_values, [-1]), indexes)
+# loss = -tf.reduce_mean(tf.log(responsible_outputs)*reward_given)
 #loss = tf.reduce_sum(tf.square(wanted_output - output_values),axis=1) + (0.001 * weight_squared)
 
 #=====================================================================
@@ -45,8 +50,8 @@ sess = tf.Session()
 curt_state = env.reset()
 epoch_counter = 0
 
-trainer = tf.train.AdamOptimizer()
-# trainer = tf.train.GradientDescentOptimizer(0.0001)
+# trainer = tf.train.AdamOptimizer()
+trainer = tf.train.GradientDescentOptimizer(0.0001)
 optimize = trainer.minimize(loss)
 sess.run(tf.global_variables_initializer())
 
@@ -61,12 +66,25 @@ def discount_rewards(r):
 
 def trainNet(episode_memory):
 	#print(episode_memory[:,0])
-	states=[s for s in episode_memory[:,0]]
+	# states=[s for s in episode_memory[:,0]]
+	# sess.run(optimize,feed_dict={
+	# 		input_state:states,
+	# 		action_taken:episode_memory[:,1],
+	# 		reward_given:episode_memory[:,2]
+	# 	})
+
+	if len(memory)<batch_size: return
+	seq = np.array([s.state for s in np.random.choice(memory,size=batch_size) ])
+	states=[s for s in seq[:,0]]
 	sess.run(optimize,feed_dict={
 			input_state:states,
-			action_taken:episode_memory[:,1],
-			reward_given:episode_memory[:,2]
+			action_taken:seq[:,1],
+			reward_given:seq[:,2]
 		})
+
+class holder:
+	def __init__(self,s):
+		self.state = s
 
 episode_memory=[]
 while True:
@@ -88,7 +106,7 @@ while True:
 		# e = 1./((step_counter/50) + 10)
 		# e -= 0.001
 		if e>0:
-			e -= 0.005
+			e -= 0.001
 			# e *= 0.998
 
 		#pretty little progres bar of how long it runs before being "done"
@@ -99,6 +117,8 @@ while True:
 		print(epoch_counter,"{:.4f}".format(e),line)
 
 		episode_memory[:,2] = discount_rewards(episode_memory[:,2])
+		for s in episode_memory:
+			memory.append(holder(s))
 		trainNet(episode_memory)
 
 		episode_memory=[]
