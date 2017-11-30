@@ -4,9 +4,11 @@ import tensorflow as tf
 import numpy as np
 from tfUtils import *
 from collections import deque
-#print(gym.envs.registry.all()) #available learning enviroments
+print(gym.envs.registry.all()) #available learning enviroments
+exit()
 
-env = gym.make("CartPole-v0")
+# env = gym.make("CartPole-v0")
+env = gym.make("SpaceInvaders-ram-v0")
 env.reset()
 
 memory_size = 10000
@@ -15,6 +17,11 @@ memory = deque(maxlen=memory_size)
 y = 0.95 #discount rate for future gains - higher makes it favor future more
 e = 1.0 #chance of forcing a random action
 batch_size = 15
+
+input_shape = env.reset().shape
+num_actions_available = env.action_space.n
+
+print(input_shape,num_actions_available)
 
 #=====================================================================
 #make the network
