@@ -5,12 +5,16 @@ def denseUnit(node,shape):
 	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
 	x = tf.nn.relu(tf.matmul(node,w)+b)
 	appendWeightNorm(w)
+	x.weights = w
+	x.biases = b
 	return x
 def denseUnit_noActivation(node,shape):
 	w = tf.Variable(tf.truncated_normal(shape, stddev=0.1,dtype=tf.float32))
 	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
 	x = tf.matmul(node,w)+b
 	appendWeightNorm(w)
+	x.weights = w
+	x.biases = b
 	return x
 
 global weight_squared
@@ -26,10 +30,17 @@ def convolutionUnit(node,shape): #kernel size x&y, features in&out
 	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
 	conv = tf.nn.convolution(node,w,"SAME") + b
 	#appendWeightNorm(w)
+	conv.weights = w
+	conv.biases = b
 	return conv
 def convolutionUnit_2x2step(node,shape): #kernel size x&y, features in&out
 	w = tf.Variable(tf.truncated_normal(shape, stddev=0.1,dtype=tf.float32))
 	b = tf.Variable(tf.constant(0.1, shape=[shape[-1]]))
 	conv = tf.nn.convolution(node,w,"SAME",strides=[2,2]) + b
-	appendWeightNorm(w)
+	#appendWeightNorm(w)
+	conv.weights = w
+	conv.biases = b
 	return conv
+
+def batchNorm(node):
+	return tf.layers.batch_normalization(node,center=True,scale=True)
