@@ -10,8 +10,11 @@ from PriorityQueue import PriorityQueue
 
 # env = gym.make("CartPole-v0")
 # env = gym.make("CartPole-v1")
-env = gym.make("SpaceInvaders-ram-v0")
+# env = gym.make("SpaceInvaders-ram-v0")
+env = gym.make("SpaceInvaders-ram-v4")
 # env = gym.make("SpaceInvaders-ramNoFrameskip-v0")
+# env = gym.make("Pitfall-ram-v0")
+# env = gym.make("MsPacman-ram-v0")
 env.reset()
 
 # memory_size = 50000
@@ -22,14 +25,16 @@ e = 0.4 #chance of forcing a random action
 delta_e = -0.001
 min_e = 0.0
 e_reset=0.4
-batch_size = 60
-num_training_loops = 10
+batch_size = 100
+num_training_loops = 9
+learning_dropout_rate = 0.8
 
 input_size = env.reset().shape[0]
 num_actions_available = env.action_space.n
 
-values_file = open("estimated_values.csv","w")
+# values_file = open("estimated_values.csv","w")
 loss_file = open("loss_values.csv","w")
+# actions_file = open("actions_taken.csv","w")
 
 # print(input_size,num_actions_available)
 
@@ -96,64 +101,184 @@ priority_memory = PriorityQueue(250000)
 #=====================================================================
 class Network:
 	def __init__(self):
+		self.dropout_rate = tf.placeholder(tf.float32)
 		#make the network
 		self.input_state = tf.placeholder(tf.float32,shape=[None,input_size])
-		# input_state = batchNorm(input_state)
-		# normalised_input = tf.nn.l2_normalize(input_state,dim=0)
-		# l1 = denseUnit(input_state,[input_size,10])
-		self.l1 = denseUnit(self.input_state,[input_size,100])
-		# l1 = batchNorm(l1)
-		self.l2 = denseUnit(self.l1,[100,150])
-		# l1 = batchNorm(l2)
-		self.l3 = denseUnit(self.l2,[150,150])
-		# l1 = batchNorm(l3)
-		# l4 = denseUnit(l3,[150,100])
-		# output_values = denseUnit_noActivation(l4,[100,num_actions_available])
-		self.output_values = denseUnit_noActivation(self.l3,[150,num_actions_available])
-		# output_values = tf.nn.tanh(denseUnit_noActivation(l1,[10,num_actions_available]))
-		# output_values = tf.nn.sigmoid(denseUnit_noActivation(l1,[10,num_actions_available]))
+		self.input_state_norm = batchNorm(self.input_state)
+		self.input_state_dropout = tf.nn.dropout(self.input_state_norm,self.dropout_rate)
+
+		self.l1 = denseUnit(self.input_state_dropout,[input_size,200])
+		self.l1_norm = batchNorm(self.l1)
+		# self.l1_dropout = tf.nn.dropout(self.l1_norm,self.dropout_rate)
+
+		self.l2 = denseUnit(self.l1_norm,[200,250])
+		self.l2_norm = batchNorm(self.l2)
+		self.l2_dropout = tf.nn.dropout(self.l2_norm,self.dropout_rate)
+
+		self.l3 = denseUnit(self.l2_dropout,[250,200])
+		self.l3_norm = batchNorm(self.l3)
+		# self.l3_dropout = tf.nn.dropout(self.l3_norm,self.dropout_rate)
+
+		self.l4 = denseUnit(self.l3_norm,[200,150])
+		self.l4_norm = batchNorm(self.l4)
+		self.l4_dropout = tf.nn.dropout(self.l4_norm,self.dropout_rate)
+
+		self.wide = denseUnit(self.input_state_dropout,[input_size,200])
+		self.wide_norm = batchNorm(self.wide)
+		# self.wide_dropout = tf.nn.dropout(self.wide_norm,self.dropout_rate)
+
+		self.combined = tf.concat([self.wide_norm,self.l4_dropout],axis=1)
+
+		self.output_values = denseUnit_noActivation(self.combined,[350,num_actions_available])
 		self.output_action = tf.argmax(self.output_values,axis=1) #the index of the highest value
 
-		self.wanted_output = tf.placeholder(tf.float32,shape=[None,num_actions_available])
-		self.deltas = tf.square(self.wanted_output - self.output_values)
-		self.loss = tf.reduce_sum(self.deltas)
-		# self.loss = tf.reduce_sum(tf.square(self.wanted_output - self.output_values),axis=1) + (0.001 * weight_squared)
+		self.wanted_output = tf.placeholder(tf.float32,shape=[None])
+		self.action_used = tf.placeholder(tf.int32,shape=[None])
+		self.masked_outputs = self.output_values * tf.one_hot(self.action_used,num_actions_available)
+		self.deltas = tf.square(self.wanted_output - tf.reduce_sum(self.masked_outputs))
+		# self.loss = tf.reduce_sum(self.deltas)
+		self.loss = tf.reduce_sum(self.deltas) + (0.001 * weight_squared)
 	def setup_copy(self, other):
-		self.copy1w = self.l1.weights.assign(other.l1.weights)
-		self.copy1b = self.l1.biases.assign(other.l1.biases)
+		self.copyImean     = self.input_state_norm.mean.assign(     other.input_state_norm.mean     )
+		self.copyIvariance = self.input_state_norm.variance.assign( other.input_state_norm.variance )
+		self.copyIoffset   = self.input_state_norm.offset.assign(   other.input_state_norm.offset   )
+		self.copyIscale    = self.input_state_norm.scale.assign(    other.input_state_norm.scale    )
 
-		self.copy2w = self.l2.weights.assign(other.l2.weights)
-		self.copy2b = self.l2.biases.assign(other.l2.biases)
+		self.copy1w        = self.l1.weights.assign(       other.l1.weights       )
+		self.copy1b        = self.l1.biases.assign(        other.l1.biases        )
+		self.copy1mean     = self.l1_norm.mean.assign(     other.l1_norm.mean     )
+		self.copy1variance = self.l1_norm.variance.assign( other.l1_norm.variance )
+		self.copy1offset   = self.l1_norm.offset.assign(   other.l1_norm.offset   )
+		self.copy1scale    = self.l1_norm.scale.assign(    other.l1_norm.scale    )
 
-		self.copy3w = self.l3.weights.assign(other.l3.weights)
-		self.copy3b = self.l3.biases.assign(other.l3.biases)
+		self.copy2w        = self.l2.weights.assign(       other.l2.weights       )
+		self.copy2b        = self.l2.biases.assign(        other.l2.biases        )
+		self.copy2mean     = self.l2_norm.mean.assign(     other.l2_norm.mean     )
+		self.copy2variance = self.l2_norm.variance.assign( other.l2_norm.variance )
+		self.copy2offset   = self.l2_norm.offset.assign(   other.l2_norm.offset   )
+		self.copy2scale    = self.l2_norm.scale.assign(    other.l2_norm.scale    )
 
-		self.copyOw = self.output_values.weights.assign(other.output_values.weights)
-		self.copyOb = self.output_values.biases.assign(other.output_values.biases)
+		self.copy3w        = self.l3.weights.assign(       other.l3.weights       )
+		self.copy3b        = self.l3.biases.assign(        other.l3.biases        )
+		self.copy3mean     = self.l3_norm.mean.assign(     other.l3_norm.mean     )
+		self.copy3variance = self.l3_norm.variance.assign( other.l3_norm.variance )
+		self.copy3offset   = self.l3_norm.offset.assign(   other.l3_norm.offset   )
+		self.copy3scale    = self.l3_norm.scale.assign(    other.l3_norm.scale    )
+
+		self.copy4w        = self.l4.weights.assign(       other.l4.weights       )
+		self.copy4b        = self.l4.biases.assign(        other.l4.biases        )
+		self.copy4mean     = self.l4_norm.mean.assign(     other.l4_norm.mean     )
+		self.copy4variance = self.l4_norm.variance.assign( other.l4_norm.variance )
+		self.copy4offset   = self.l4_norm.offset.assign(   other.l4_norm.offset   )
+		self.copy4scale    = self.l4_norm.scale.assign(    other.l4_norm.scale    )
+
+		self.copyWw        = self.wide.weights.assign(       other.wide.weights       )
+		self.copyWb        = self.wide.biases.assign(        other.wide.biases        )
+		self.copyWmean     = self.wide_norm.mean.assign(     other.wide_norm.mean     )
+		self.copyWvariance = self.wide_norm.variance.assign( other.wide_norm.variance )
+		self.copyWoffset   = self.wide_norm.offset.assign(   other.wide_norm.offset   )
+		self.copyWscale    = self.wide_norm.scale.assign(    other.wide_norm.scale    )
+
+		self.copyOw = self.output_values.weights.assign( other.output_values.weights )
+		self.copyOb = self.output_values.biases.assign(  other.output_values.biases  )
 	def perform_copy(self,sess):
+		sess.run(self.copyImean)
+		sess.run(self.copyIvariance)
+		sess.run(self.copyIoffset)
+		sess.run(self.copyIscale)
+
 		sess.run(self.copy1w)
 		sess.run(self.copy1b)
+		sess.run(self.copy1mean)
+		sess.run(self.copy1variance)
+		sess.run(self.copy1offset)
+		sess.run(self.copy1scale)
+
 		sess.run(self.copy2w)
 		sess.run(self.copy2b)
+		sess.run(self.copy2mean)
+		sess.run(self.copy2variance)
+		sess.run(self.copy2offset)
+		sess.run(self.copy2scale)
+
 		sess.run(self.copy3w)
 		sess.run(self.copy3b)
+		sess.run(self.copy3mean)
+		sess.run(self.copy3variance)
+		sess.run(self.copy3offset)
+		sess.run(self.copy3scale)
+
+		sess.run(self.copy4w)
+		sess.run(self.copy4b)
+		sess.run(self.copy4mean)
+		sess.run(self.copy4variance)
+		sess.run(self.copy4offset)
+		sess.run(self.copy4scale)
+
+		sess.run(self.copyWw)
+		sess.run(self.copyWb)
+		sess.run(self.copyWmean)
+		sess.run(self.copyWvariance)
+		sess.run(self.copyWoffset)
+		sess.run(self.copyWscale)
+
 		sess.run(self.copyOw)
 		sess.run(self.copyOb)
 	def get_weights(self):
 		return [
-			self.l1.weights,self.l1.biases,
-			self.l2.weights,self.l2.biases,
-			self.l3.weights,self.l3.biases,
-			self.output_values.weights,self.output_values.biases
+			self.input_state_norm.mean,
+			self.input_state_norm.variance,
+			self.input_state_norm.offset,
+			self.input_state_norm.scale,
+
+			self.l1.weights,
+			self.l1.biases,
+			self.l1_norm.mean,
+			self.l1_norm.variance,
+			self.l1_norm.offset,
+			self.l1_norm.scale,
+
+			self.l2.weights,
+			self.l2.biases,
+			self.l2_norm.mean,
+			self.l2_norm.variance,
+			self.l2_norm.offset,
+			self.l2_norm.scale,
+
+			self.l3.weights,
+			self.l3.biases,
+			self.l3_norm.mean,
+			self.l3_norm.variance,
+			self.l3_norm.offset,
+			self.l3_norm.scale,
+
+			self.l4.weights,
+			self.l4.biases,
+			self.l4_norm.mean,
+			self.l4_norm.variance,
+			self.l4_norm.offset,
+			self.l4_norm.scale,
+
+			self.wide.weights,
+			self.wide.biases,
+			self.wide_norm.mean,
+			self.wide_norm.variance,
+			self.wide_norm.offset,
+			self.wide_norm.scale,
+
+			self.output_values.weights,
+			self.output_values.biases
 		]
-teacher = Network();
-student = Network();
+
+student = Network()
+teacher = Network()
 teacher.setup_copy(student)
 
 #=====================================================================
 #do the learning
-sess = tf.Session()
-curt_state = env.reset() / 256.0
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333) #ratio of how much vram it allocates
+sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+curt_state = env.reset()
 step_counter = 0
 actions_taken=[]
 epoch_counter = 0
@@ -161,7 +286,7 @@ episode_memory = []
 teacher_available = False
 
 trainer = tf.train.AdamOptimizer()
-saver = tf.train.Saver(student.get_weights())
+saver = tf.train.Saver(var_list=student.get_weights())
 # trainer = tf.train.GradientDescentOptimizer(0.0001)
 optimize = trainer.minimize(student.loss)
 sess.run(tf.global_variables_initializer())
@@ -169,56 +294,59 @@ sess.run(tf.global_variables_initializer())
 def trainNet():
 	# seq = list(bestEffort_memory.get_samples(batch_size//3)) + list(normal_memory.get_samples(batch_size))
 	seq = priority_memory.sample(batch_size)
-	# seq1 = list(bestEffort_memory.get_samples(batch_size//2))
-	# seq2 = list(normal_memory.get_samples(batch_size))
-	# seq = seq1 + seq2
-	# if len(seq1)>10 and len(seq2)>10 and len(seq)>10:
-	# 	print(len(seq1) , len(seq2) , len(seq))
-	# 	print(seq1[10],'+',seq2[10],'=',seq[10])
-	# 	exit()
-	# else:
-	# 	print(len(seq1) , len(seq2) , len(seq))
 	if len(seq)==0:
 		return
-	# seq = normal_memory.get_samples(batch_size)
 	states=[]
 	wanted=[]
 	deltas=[]
+	actions=[]
 	for step in seq:
 		curt_state = step[1]["curt_state"]
 		next_state = step[1]["next_state"]
 		reward     = step[1]["reward"]
 		action     = step[1]["action"]
 		done       = step[1]["done"]
-		outputs    = sess.run(student.output_values,feed_dict={student.input_state:[curt_state]})
 		if not teacher_available:
-			outputs_next = sess.run(student.output_values,feed_dict={student.input_state:[next_state]})
+			outputs_next = sess.run(student.output_values,feed_dict={student.input_state:[next_state],student.dropout_rate:1.0})
 		else:
-			outputs_next = sess.run(teacher.output_values,feed_dict={teacher.input_state:[next_state]})
+			outputs_next = sess.run(teacher.output_values,feed_dict={teacher.input_state:[next_state],teacher.dropout_rate:1.0})
 
 		delta=0
 		if not done:
 			delta = reward + ( gamma*np.max(outputs_next))
 		else:
 			delta = reward
-		priority_memory.update(step[0],abs(delta-outputs[0][action]))
-		target_outputs = outputs[0].copy()
-		target_outputs[action] = delta
 
 		states.append(curt_state)
-		wanted.append(target_outputs)
 		deltas.append(delta)
+		actions.append(action)
 
 	# if epoch_counter %250 == 0:
 	# 	print(deltas)
 	# 	print()
-	# 	print(wanted)
 	# 	# print()
-	# 	# print(sess.run(student.deltas,feed_dict={student.input_state:states,student.wanted_output:wanted}))
+	# 	# print(sess.run(student.deltas,feed_dict={student.input_state:states,student.wanted_output:deltas}))
 	# 	# exit()
 	# 	input()
-	_,loss = sess.run([optimize,student.loss],feed_dict={student.input_state:states,student.wanted_output:wanted})
+	# print( sess.run([student.masked_outputs,student.deltas],feed_dict={student.input_state:states,student.wanted_output:deltas,student.action_used:actions,student.dropout_rate:0.8}) )
+	# exit()
+	
+	_,loss = sess.run([optimize,student.loss],feed_dict={student.input_state:states,student.wanted_output:deltas,student.action_used:actions,student.dropout_rate:learning_dropout_rate})
 	loss_file.write(str(loss)+"\n")
+
+	#update our error for the states we just trained on
+	for step in seq:
+		curt_state = step[1]["curt_state"]
+		next_state = step[1]["next_state"]
+		reward     = step[1]["reward"]
+		done       = step[1]["done"]
+		outputs,choice = sess.run([student.output_values,student.output_action],feed_dict={student.input_state:[curt_state],student.dropout_rate:1.0})
+		outputs_next   = sess.run(student.output_values,feed_dict={student.input_state:[next_state],student.dropout_rate:1.0})
+		if not done:
+			delta = reward + ( gamma*np.max(outputs_next))
+		else:
+			delta = reward
+		priority_memory.update(step[0],abs(delta-outputs[0][choice[0]]))
 
 def discount_rewards(r):
 	""" take 1D float array of rewards and compute discounted reward """
@@ -234,7 +362,7 @@ episode_errors = []
 while e>min_e:
 	step_counter += 1
 	#Chose an action for the current state
-	action,predictions = sess.run([student.output_action,student.output_values],feed_dict={student.input_state:[curt_state]})
+	action,predictions = sess.run([student.output_action,student.output_values],feed_dict={student.input_state:[curt_state],student.dropout_rate:1.0})
 	if np.random.rand(1) < e:
 		action[0] = env.action_space.sample()
 	actions_taken.append(action[0])
@@ -243,31 +371,35 @@ while e>min_e:
 	#see what the action does
 	try:
 		next_state, reward, done, info = env.step(action[0])
-		next_state = next_state / 256.0
+		next_state = next_state
 	except:
 		print("error when taking action ",action)
-		curt_state = env.reset() / 256.0
+		curt_state = env.reset()
 		continue
 
 	episode_memory.append([curt_state.copy(),next_state.copy(),reward,action[0],done])
 	if not len(episode_memory) == 1:
+
 		episode_errors.append(abs(prev_expected_value - (reward+gamma*current_expected_value)))
+		
 	prev_expected_value = current_expected_value
 
 	curt_state = next_state
 	if done == True:
-		curt_state = env.reset() / 256.0
+		curt_state = env.reset()
 		# Reduce chance of random action as we train the model.
 		# e = 1./((step_counter/50) + 10)
 		# e -= 0.001
 		if e>0:
 			e += delta_e
+
 		if e<min_e+0.001 and num_training_loops>0:
 			num_training_loops-=1
 			e=e_reset
 			bestEffort_memory.clear()
 			teacher.perform_copy(sess)
 			teacher_available = True
+
 		#pretty little progres bar of how long it runs before being "done"
 		# print((" "*int(step_counter)) + "#")
 		line = ""
@@ -296,39 +428,42 @@ while e>min_e:
 		# bestEffort_memory.append(mem,reward_total)
 		# normal_memory.append(mem)
 		trainNet()
-		if epoch_counter%1000 == 0:
-			saver.save(sess,"model")
+		if epoch_counter%500 == 0:
+			saver.save(sess,"./model",global_step=epoch_counter)
 		episode_memory=[]
 		episode_errors=[]
-saver.save(sess,"model")
+saver.save(sess,"./model",global_step=epoch_counter)
 
 
-while True:
-	env.render()
-	#Chose an action for the current state
-	action,values = sess.run([student.output_action,student.output_values],feed_dict={student.input_state:[curt_state]})
-	actions_taken.append(action[0])
-	# print(values[0])
-	values_file.write(str(values[0][action[0]])+",")
+# while True:
+# 	env.render()
+# 	#Chose an action for the current state
+# 	action,values = sess.run([student.output_action,student.output_values],feed_dict={student.input_state:[curt_state]})
+# 	actions_taken.append(action[0])
+# 	# print(values[0])
+# 	values_file.write(str(values[0][action[0]])+",")
+# 	actions_file.write(str(action[0])+",")
 
-	#see what the action does
-	try:
-		next_state, reward, done, info = env.step(action[0])
-	except:
-		print(action)
-		curt_state = env.reset()
-		continue
+# 	#see what the action does
+# 	try:
+# 		next_state, reward, done, info = env.step(action[0])
+# 		next_state = next_state / 256.0
+# 	except:
+# 		print(action)
+# 		curt_state = env.reset() / 256.0
+# 		continue
 
-	curt_state = next_state
-	if done == True:
-		values_file.write("\n")
-		curt_state = env.reset()
+# 	curt_state = next_state
+# 	if done == True:
+# 		values_file.write("\n")
+# 		actions_file.write("\n")
+# 		curt_state = env.reset() / 256.0
 
-		#pretty little progres bar
-		line = ""
-		for x in actions_taken : line += str(x)
-		print("{:.4f}".format(e),line)
-		actions_taken=[]
+# 		#pretty little progres bar
+# 		line = ""
+# 		for x in actions_taken : line += str(x)
+# 		print("{:.4f}".format(e),line)
+# 		actions_taken=[]
 
 
 """
@@ -509,14 +644,74 @@ lets try again - changed loss function for reduce_sum (removed axis=1)
 	-> memory size 250k
 	-> loops 11
 	-> sat still while shooting
-	-> estimated_values_0.csv
 lets try again - changed loss function for reduce_sum (removed axis=1)
 	-> e of 0.4 to 0.0 with delta -0.001
-	-> gamma = 0.99
+	-> gamma = 0.98
 	-> batch size 60
 	-> memory size 250k
-	-> loops 40
-	-> sat still while shooting
-	-> estimated_values_1.csv
-	-> loss_values_1.csv
+	-> loops 20
+	-> 2 hours
+	-> mostly jsut sat around
+lets try again - 2 hidden layer (down from 3)
+	-> e of 0.4 to 0.0 with delta -0.001
+	-> gamma = 0.98
+	-> batch size 60
+	-> memory size 250k
+	-> loops 20
+	-> 
+
+tried batch norm
+	-> got things broken
+fixed my variables that i am saving to file
+	-> HOLY COW IT IS GOOD AND ONLY 4000 EPISODES!!!
+	-> video10
+	-> atari_batch folder
+i guess overtraining is a thing
+	-> sits still after 40 training loops
+second try just to see what it will look like
+	-> it is getting good
+	-> only 4000 episodes (10 loops)
+	-> moves around ant routinely get 250-300 score
+	-> atari_batch_2 folder
+	-> video11
+added dropout (only 50% for student in training, but 100% all other times like teacher)
+	-> atari_batch_3 folder
+	-> 10 loops - which i think is all i need because the loss levels out mostly by 1000 episodes, but is suspicious that it does so because that is the time that the second teacher comes around?
+		-> i mean, loss being crazy when challenging itself makes sense, and getting extreme gains on the first teacher makes sense
+	-> broken. I think it is because the same dropout is not being used for the training from the first and last runs
+tried with a different loss system that should fix the dropout issues
+	-> atari_batch_3 folder
+	-> 10 loops
+	-> only moves right while shooting. Maybe 50% loss is too agressive?
+
+trying batch norm in a different location in the layer (right after weight multiply instead of after activation)
+	-> no dropout because it wasn't working perfectly before so am isolating changes
+	-> atari_batch_4 folder
+	-> no-go, maybe soemthing is wrong because my loss function stops getting smaller after ~500 episodes but is still huge
+		-> 100K averate for batch of 100
+		-> 1k off per item (wanted-output squared)
+		-> 31.6 off per item (wanted-output)
+
+Back to dropout version
+	-> 0.8 keep rate instead of 0.5
+	-> 20 loops
+	-> added third hidden layer and a "wide" layer
+	-> meh results
+try again with gamma of 0.99
+	-> not bad, jumps around an doesn't just hold the shoot button
+try with 4 hidden layers
+	-> only 4000 episodes and is pretty good
+	-> video12
+try with 5 hidden layers
+	-> 10 loops
+	-> not sure if training enough
+5 layers
+	-> 30 loops
+	-> only did 6000 episodes because i got bored
+	-> still not very good
+
+screw the 5 layers, lets use 4 again but on a different game
+	-> 10 loops
+	-> pitfall
+	-> HAHAHAHHAHAHAHAHHAHAHAHA ... no
 """

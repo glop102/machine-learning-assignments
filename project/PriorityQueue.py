@@ -57,6 +57,7 @@ class SumTree:
 		return (idx, self.tree[idx], self.data[dataIdx])
 
 #https://github.com/jaara/AI-blog/blob/master/Seaquest-DDQN-PER.py
+
 class PriorityQueue:   # stored as ( s, a, r, s_ ) in SumTree
 	e = 0.01
 	a = 0.6

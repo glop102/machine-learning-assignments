@@ -43,4 +43,13 @@ def convolutionUnit_2x2step(node,shape): #kernel size x&y, features in&out
 	return conv
 
 def batchNorm(node):
-	return tf.layers.batch_normalization(node,center=True,scale=True)
+	mean = tf.Variable(tf.constant(1.0, shape=[1]))
+	variance = tf.Variable(tf.constant(1.0, shape=[1]))
+	offset = tf.Variable(tf.constant(1.0, shape=[1]))
+	scale = tf.Variable(tf.constant(1.0, shape=[1]))
+	layer = tf.nn.batch_normalization(node,mean,variance,offset,scale,variance_epsilon=0.00001)
+	layer.mean = mean
+	layer.variance = variance
+	layer.offset = offset
+	layer.scale = scale
+	return layer
